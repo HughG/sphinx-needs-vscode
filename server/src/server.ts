@@ -353,14 +353,17 @@ connection.onDidChangeWatchedFiles((_change) => {
 function read_needs_json(given_needs_json_path: string) {
 	// Check if given needs.json path exists
 	const needs_json_path = given_needs_json_path;
+	tslogger.info(`SNV: Reading needs from ${needs_json_path}`);
 
 	if (!fs.existsSync(needs_json_path)) {
+		tslogger.info(`SNV: Needs file does not exist: ${needs_json_path}`);
 		return;
 	}
 
 	try {
 		const data = fs.readFileSync(needs_json_path, 'utf8');
 		const needs_json: NeedsJsonObj = JSON.parse(data);
+		tslogger.debug(`SNV: Read needs ${JSON.stringify(needs_json)}`);
 		return needs_json;
 	} catch (err) {
 		tslogger.error(`SNV: Error reading NeedsJson: ${err}`);

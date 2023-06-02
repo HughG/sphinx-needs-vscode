@@ -20,6 +20,7 @@ export function activate(context: ExtensionContext) {
 
 	// TreeView of Sphinx-Needs Objects
 	const needsExplorerProvider = new NeedsExplorerProvider();
+	console.info('SNV: Created NeedsExplorerProvider.');
 	window.createTreeView('sphinxNeedsExplorer', {
 		treeDataProvider: needsExplorerProvider
 	});

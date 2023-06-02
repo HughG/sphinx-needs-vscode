@@ -70,8 +70,11 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		// Initial logger
 		tslogger = new TimeStampedLogger(this.snvConfigs.loggingLevel);
 
+		tslogger.info("SNV Explorer -> constructor");
+
 		// Check needsJson and srcDir from workspace configurations
 		this.check_wk_configs();
+		tslogger.info("SNV Explorer -> checked configs");
 
 		// Load all needsJsons from workspace configurations
 		this.needsInfos = this.loadAllNeedsJsonsToInfos();
@@ -129,6 +132,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		const watcher = vscode.workspace.createFileSystemWatcher('**/*.json');
 		// Watch for file content change
 		watcher.onDidChange((uri) => {
+			tslogger.info(`SVN Explorer -> File change: ${uri}`)
 			if (all_curr_needs_jsons.indexOf(uri.fsPath) >= 0) {
 				this.needsInfos[uri.fsPath] = this.loadNeedsJsonToInfo(uri.fsPath);
 				this._onDidChangeTreeData.fire(undefined);
@@ -136,6 +140,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		});
 		// Watch for file create
 		watcher.onDidCreate((uri) => {
+			tslogger.info(`SVN Explorer -> File creation: ${uri}`)
 			if (all_curr_needs_jsons.indexOf(uri.fsPath) >= 0) {
 				this.needsInfos[uri.fsPath] = this.loadNeedsJsonToInfo(uri.fsPath);
 				this._onDidChangeTreeData.fire(undefined);
@@ -157,6 +162,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 
 	private listenToChangeConfiguration(): void {
 		vscode.workspace.onDidChangeConfiguration(() => {
+			tslogger.info(`SVN Explorer -> Configuration change`)
 			let updateTreeData = false;
 			const newConfig = this.getSNVConfigurations();
 
@@ -229,12 +235,15 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 	}
 
 	getChildren(element?: NeedTree | NeedOptionItem): Thenable<vscode.TreeItem[]> {
+		tslogger.info(`SNV NeedsExplorerProvider -> getChildren(${element?.id} = ${element?.label})`);
 		if (!this.needsInfo.needs) {
+			tslogger.info(`SNV NeedsExplorerProvider -> getChildren: No needs!`);
 			return Promise.resolve([]);
 		}
 
 		if (!element) {
 			// Root level
+			tslogger.info(`SNV NeedsExplorerProvider -> getChildren: root`);
 			return Promise.resolve(this.getNeedTree());
 		}
 
@@ -242,11 +251,13 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		if (element.id && element.id in this.needsInfo.needs && this.snvConfigs.explorerOptions) {
 			const optionItems: NeedOptionItem[] = [];
 			this.snvConfigs.explorerOptions.forEach((option) => {
+				tslogger.info(`SNV NeedsExplorerProvider -> getChildren: option ${option} for ${element.id}`);
 				if (element.id) {
 					// check if option exists in needs.json
 					if (option in this.needsInfo.needs[element.id]) {
 						for (const [need_option, op_value] of Object.entries(this.needsInfo.needs[element.id])) {
 							if (option === need_option) {
+								tslogger.info(`SNV NeedsExplorerProvider -> getChildren: option ${option} for ${element.id} == ${op_value}`);
 								optionItems.push(
 									new NeedOptionItem(option + ': ' + op_value, vscode.TreeItemCollapsibleState.None)
 								);
@@ -264,6 +275,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 	}
 
 	getTreeItem(element: NeedTree): vscode.TreeItem | Thenable<vscode.TreeItem> {
+		tslogger.info(`SNV NeedsExplorerProvider -> getTreeItem(${element}))`);
 		return element;
 	}
 
@@ -288,8 +300,14 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 			vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
 				? vscode.workspace.workspaceFolders[0].uri.fsPath
 				: undefined;
+		console.info(`SNV Explorer -> vscode.workspace.workspaceFolders: ${vscode.workspace.workspaceFolders}`);
 		const conf_folders: DocConf[] = [];
 		if (workspaceFolderpath) {
+			if (vscode.workspace.workspaceFolders) {
+				let folder0 = vscode.workspace.workspaceFolders[0]
+				console.info(`SNV Explorer -> vscode.workspace.workspaceFolders[0]: ${folder0}`);
+				console.info(`SNV Explorer -> vscode.workspace.workspaceFolders[0].uri: ${folder0.uri}`);	
+			}
 			needs_json_path = needs_json_path?.replace('${workspaceFolder}', workspaceFolderpath);
 			confPyDir = confPyDir?.replace('${workspaceFolder}', workspaceFolderpath);
 			wk_folders?.forEach((folder) => {
@@ -298,6 +316,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 					srcDir: folder.srcDir.replace('${workspaceFolder}', workspaceFolderpath)
 				});
 			});
+			console.info(`SNV Explorer -> replaced workspaceFolder path: ${workspaceFolderpath}`);
 		} else {
 			console.error(`SNV Explorer -> Can't resolve current workspaceFolder path: ${workspaceFolderpath}`);
 		}
@@ -351,6 +370,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 	}
 
 	private loadAllNeedsJsonsToInfos(): NeedsInfos {
+		tslogger.info('SNV Explorer -> Loading needs JSON');
 		const all_needs_infos: NeedsInfos = {};
 		// Load needsJson from sphinx-needs.folders
 		this.snvConfigs.folders.forEach((fd) => {
@@ -362,6 +382,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		});
 		// Load sphinx-needs.needsJson
 		if (this.snvConfigs.needsJson && this.snvConfigs.srcDir && !(this.snvConfigs.needsJson in all_needs_infos)) {
+			tslogger.info(`SNV Explorer -> Loading sphinx-needs.needsJson from ${this.snvConfigs.needsJson}`);
 			all_needs_infos[this.snvConfigs.needsJson] = this.loadNeedsJsonToInfo(this.snvConfigs.needsJson);
 		}
 		return all_needs_infos;
@@ -369,11 +390,13 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 
 	private loadNeedsJsonToInfo(needsJsonFilePath: string | undefined): NeedsInfo | undefined {
 		// Check needs.json path and get needs object from needs.json if exists
+		tslogger.info(`SNV Explorer -> loadNeedsJsonToInfo: ${needsJsonFilePath}`);
 		if (needsJsonFilePath && this.pathExists(needsJsonFilePath)) {
-			tslogger.debug(`SNV Explorer -> Loaded nedds json: ${needsJsonFilePath}`);
+			tslogger.debug(`SNV Explorer -> Loading needs json: ${needsJsonFilePath}`);
 
 			// Read needs.json
 			const needsJson = JSON.parse(fs.readFileSync(needsJsonFilePath, 'utf-8'));
+			tslogger.debug(`SNV Explorer -> Loaded needs json: ${JSON.stringify(needsJson)}`);
 
 			// Get needs objects from current_version
 			const curr_version: string = needsJson['current_version'];
@@ -455,18 +478,22 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 		let curr_need_file_path = '';
 		if (this.needsInfo.src_dir) {
 			curr_need_file_path = path.resolve(this.needsInfo.src_dir, curr_need.docname + curr_need.doctype);
+			tslogger.warn(`SNV Explorer -> doc path for Need ${need.id} is ${curr_need_file_path}`);
 			if (!this.pathExists(curr_need_file_path)) {
 				tslogger.warn(`SNV Explorer -> doc path for Need ${need.id} not exists: ${curr_need_file_path}`);
 			}
 		}
 		const needFileUri: vscode.Uri = vscode.Uri.file(curr_need_file_path);
+		tslogger.warn(`SNV Explorer -> neddFileUri for Need ${need.id} is ${needFileUri}`);
 		return needFileUri;
 	}
 
 	private getNeedTree(): NeedTree[] {
 		const needsItems: NeedTree[] = [];
+		tslogger.info(`SNV NeedsExplorerProvider -> getNeedTree`);
 		if (this.needsInfo.needs) {
 			Object.values(this.needsInfo.needs).forEach((need) => {
+				tslogger.info(`SNV NeedsExplorerProvider -> getNeedTree: processing ${need.id}`);
 				// Check if Need ID matches Need Objects key entry
 				if (!(need['id'] in this.needsInfo.needs)) {
 					tslogger.warn(`SNV Explorer -> Need object entry of ${need.id} not exits in given needs.json`);
@@ -486,6 +513,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 					});
 					// Get need ID Definition Location
 					const needFileUri = this.getNeedFilePath(need);
+					tslogger.info(`SNV NeedsExplorerProvider -> getNeedTree: needFileUri for ${need.id} = ${needFileUri}`);
 					let needIDPos;
 					try {
 						needIDPos = findDefinition(need, needFileUri);
@@ -510,6 +538,7 @@ export class NeedsExplorerProvider implements vscode.TreeDataProvider<vscode.Tre
 			});
 			return needsItems;
 		} else {
+			tslogger.info(`SNV NeedsExplorerProvider -> getNeedTree: no needs!`);
 			return [];
 		}
 	}
@@ -563,12 +592,14 @@ function findDefinition(need: Need, fileUri: vscode.Uri): vscode.Range | undefin
 	// Read the document where Need ID is at
 	const doc_contents = read_need_doc_contents(fileUri);
 	if (!doc_contents) {
+		tslogger.info(`SNV NeedsExplorerProvider -> findDefinition: failed to read ${fileUri} for ${need.id}`);
 		return;
 	}
 
 	// Get location of need directive definition line index, e.g. .. req::
 	const need_directive_location = find_directive_definition(doc_contents, need);
 	if (!need_directive_location) {
+		tslogger.info(`SNV NeedsExplorerProvider -> findDefinition: failed to find directive in ${fileUri} for ${need.id}`);
 		return;
 	}
 
