@@ -21,7 +21,8 @@ import {
 	FileEvent
 } from 'vscode-languageserver/node';
 
-import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { URI } from 'vscode-uri';
 
 import { LogLevel, TimeStampedLogger } from './logging';
 
@@ -35,7 +36,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 
-let workspace_folder_uri: DocumentUri;
+let workspace_folder_uri: URI | undefined;
 
 let needs_infos: NeedsInfos;
 let isMultiDocs = false;
@@ -106,11 +107,9 @@ interface WsConfigs {
 }
 
 connection.onInitialize((params: InitializeParams) => {
-	if (params.workspaceFolders) {
-		workspace_folder_uri = params.workspaceFolders[0].uri;
-	} else {
-		workspace_folder_uri = '';
-	}
+	workspace_folder_uri = (params.workspaceFolders && params.workspaceFolders.length > 0)
+		? URI.parse(params.workspaceFolders[0].uri)
+		: undefined;
 
 	const capabilities = params.capabilities;
 
@@ -237,7 +236,7 @@ function check_wk_confs(configs: WsConfigs) {
 
 // Get workspace settings
 async function get_wk_conf_settings() {
-	const cal_wk_folder_uri: string = workspace_folder_uri.replace('file://', '');
+	const cal_wk_folder_uri: string = workspace_folder_uri?.fsPath ?? "";
 
 	// Get configuration of sphinx-needs.needsJson
 	let needs_json_path = '';
